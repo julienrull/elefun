@@ -1,13 +1,14 @@
 <?php
-
 require "Router.php";
-
 $route = new Route();
 $route
-    ->GET('/home', function($request, $response): Response {
+    ->use(function($request, $response, $next){
+        $next();
+    })
+    ->get('/home', function($request, $response, $next): Response {
         return $response->json(json_encode(array("hello" => "world")));
     })
-    ->POST('/home', function($request, $response): Response {
-        echo 'You sended a new home °_° !';
+    ->post('/home', function($request, $response, $next): Response {
+        return $response->json(json_encode(array("hello" => "world")));
     })
 ->run();

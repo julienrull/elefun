@@ -43,19 +43,46 @@ class Response {
         return $this;
     }
 }
-class Route {
-    public array $ROUTES =      ['*' => [], 'GET' => [], 'POST' => [], 'PUT' => [],'DELETE' => [],]; 
-    public array $MIDDLEWARES = ['*' => [], 'GET' => [], 'POST' => [], 'PUT' => [],'DELETE' => [],]; 
 
-    public function CUSTOM (string $method, string $path, $callback): Route { 
-        $this->ROUTES[$method] = array($path => $callback);
+
+class Middleware {
+    public ?string  $path;
+    public ?string  $method;
+    public $callback;
+    function __construct(?string $path, ?string $method, $callback) {
+        $this->path = $path;
+        $this->method = $method;
+        $this->callback = $callback;
+    }
+}
+
+class Route {
+    //public array $ROUTES =      ['*' => [], 'GET' => [], 'POST' => [], 'PUT' => [],'DELETE' => []]; 
+    public array $MIDDLEWARES = []; 
+    public $to_next = false;
+
+    public function next() {
+        $this->to_next = true;
+    }
+
+    public function middleware(?string $path, ?string $method, $callback): Route { 
+        $this->MIDDLEWARES[] = new Middleware($path, $method, $callback);
+        //$this->ROUTES[$method] = array($path => $callback);
         return $this; 
     }
-    public function GET (string $path, $callback): Route { 
-        return $this->CUSTOM('GET', $path, $callback);
+    public function get(string $path, $callback): Route { 
+        return $this->middleware($path, 'GET', $callback);
     }
-    public function POST (string $path, $callback): Route { 
-        return $this->CUSTOM('POST', $path, $callback);
+    public function post(string $path, $callback): Route { 
+        return $this->middleware($path, 'POST', $callback);
+    }
+    public function use(): Route { 
+        if (func_num_args() === 1) {
+                return $this->middleware(null, null, func_get_arg(0));
+        } else if(func_num_args() === 2) {
+                return $this->middleware(func_get_arg(0), null, func_get_arg(1));
+        }
+        return $this;
     }
     public function run(): void {
         $request = new Request();
@@ -64,9 +91,21 @@ class Route {
         $request->params    = $_GET;
         $request->form      = $_POST;
         $response = new Response();
-        if($this->ROUTES[$request->method][$request->path] !== null) {
-            $response = $this->ROUTES[$request->method][$request->path]($request, $response);
-            echo $response->body;
+        foreach($this->MIDDLEWARES as $middleware) {
+            if($middleware->path === null) {
+                call_user_func($middleware->callback, $request, $response, array($this, 'next'));
+            }else if($middleware->path === $request->path) {
+                if($middleware->method === null){
+                    call_user_func($middleware->callback, $request, $response, array($this, 'next'));
+                }else if($middleware->method === $request->method) {
+                    call_user_func($middleware->callback, $request, $response, array($this, 'next'));
+                }
+            }
+            if(!$this->to_next) {
+                break;
+            }
+            $this->to_next = false;
         }
+        echo $response->body;
     } 
 }
