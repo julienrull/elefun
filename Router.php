@@ -8,9 +8,11 @@ class Request {
 class Response {
     public int     $status;
     public mixed   $body;
+    public bool    $to_next;
     function __construct() {
         $this->body = null;
         $this->status = 200;
+        $this->to_next = true;
         $this->header('Content-Type', 'text/plain; charset=utf-8');
     }
 
@@ -21,6 +23,10 @@ class Response {
 
     public function status(int $code): Response{
         http_response_code($code);
+        return $this;
+    }
+    public function next(): Response{
+        $this->to_next = true;
         return $this;
     }
     public function send(string $body): Response{
@@ -56,27 +62,22 @@ class Middleware {
     }
 }
 
-class Route {
+class Router {
     //public array $ROUTES =      ['*' => [], 'GET' => [], 'POST' => [], 'PUT' => [],'DELETE' => []]; 
     public array $MIDDLEWARES = []; 
-    public $to_next = false;
 
-    public function next() {
-        $this->to_next = true;
-    }
-
-    public function middleware(?string $path, ?string $method, $callback): Route { 
+    public function middleware(?string $path, ?string $method, $callback): Router { 
         $this->MIDDLEWARES[] = new Middleware($path, $method, $callback);
         //$this->ROUTES[$method] = array($path => $callback);
         return $this; 
     }
-    public function get(string $path, $callback): Route { 
+    public function get(string $path, $callback): Router { 
         return $this->middleware($path, 'GET', $callback);
     }
-    public function post(string $path, $callback): Route { 
+    public function post(string $path, $callback): Router { 
         return $this->middleware($path, 'POST', $callback);
     }
-    public function use(): Route { 
+    public function use(): Router { 
         if (func_num_args() === 1) {
                 return $this->middleware(null, null, func_get_arg(0));
         } else if(func_num_args() === 2) {
@@ -92,19 +93,22 @@ class Route {
         $request->form      = $_POST;
         $response = new Response();
         foreach($this->MIDDLEWARES as $middleware) {
-            if($middleware->path === null) {
-                call_user_func($middleware->callback, $request, $response, array($this, 'next'));
-            }else if($middleware->path === $request->path) {
-                if($middleware->method === null){
-                    call_user_func($middleware->callback, $request, $response, array($this, 'next'));
-                }else if($middleware->method === $request->method) {
-                    call_user_func($middleware->callback, $request, $response, array($this, 'next'));
-                }
-            }
-            if(!$this->to_next) {
+            if($response->to_next) {
+                if($middleware->path === null) {
+                    $response->to_next = false;
+                    $response = call_user_func($middleware->callback, $request, $response);
+                }else if($middleware->path === $request->path) {
+                    if($middleware->method === null){
+                        $response->to_next = false;
+                        $response = call_user_func($middleware->callback, $request, $response);
+                    }else if($middleware->method === $request->method) {
+                        $response->to_next = false;
+                        $response = call_user_func($middleware->callback, $request, $response);
+                    }
+                }        
+            }else {
                 break;
             }
-            $this->to_next = false;
         }
         echo $response->body;
     } 

@@ -1,14 +1,14 @@
 <?php
 require "Router.php";
-$route = new Route();
-$route
-    ->use(function($request, $response, $next){
-        $next();
+$router = new Router();
+$router
+    ->use('/home', function($request, $response){
+        return $response->json(json_encode(array("hello" => "bloop")));
     })
-    ->get('/home', function($request, $response, $next): Response {
-        return $response->json(json_encode(array("hello" => "world")));
+    ->post('/home', function($request, $response) {
+        return $response->json(json_encode(array("sweet" => "war")));
     })
-    ->post('/home', function($request, $response, $next): Response {
+    ->get('/home', function($request, $response) {
         return $response->json(json_encode(array("hello" => "world")));
     })
 ->run();
