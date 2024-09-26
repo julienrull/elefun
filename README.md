@@ -10,9 +10,9 @@ Download "Elefun.php" with your tool of choice:
 
 ```bash
 curl  https://raw.githubusercontent.com/julienrull/elefun/refs/heads/master/Elefun.php -o Elefun.php
-
-# OR
-
+```
+OR
+```bash
 wget https://raw.githubusercontent.com/julienrull/elefun/refs/heads/master/Elefun.php  -o Elefun.php
 ```
 
