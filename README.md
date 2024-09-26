@@ -29,18 +29,15 @@ $router = new Router();
 
 // 3. Define your routes and middlewares
 $router
-    ->use('/home', function($request, $response){
-        return $response
-                    ->json(json_encode(array("hello" => "bloop")))
-                    ->next();
+    ->use(function(&$req, &$res, $next){
+        $res->text("Try commenting the line below...");
+        $next();
     })
-    ->get('/home', function($request, $response) {
-        return $response
-                    ->text("Hello Elefun !");
+    ->post('/home', function(&$req, &$res) {
+        $res->json(json_encode(array("sweet" => "war")));
     })
-    ->post('/home', function($request, $response) {
-        return $response
-                    ->json(json_encode(array("sweet" => "war")));
+    ->get('/home', function(&$req, &$res) {
+        $res->json(json_encode(array("hello" => "world")));
     })
 ->run(); // 4. Run the router that will catch all incomming requests
 ```

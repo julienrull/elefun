@@ -1,11 +1,10 @@
 <?php
 require "Router.php";
 
-
 $router = new Router();
 $router
     ->use(function(&$req, &$res, $next){
-        error_log(print_r("GLOBAL use 1", TRUE)); 
+        $res->text("Try commenting the line below...");
         $next();
     })
     ->post('/home', function(&$req, &$res) {
